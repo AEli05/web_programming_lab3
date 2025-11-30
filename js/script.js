@@ -47,11 +47,20 @@ function createButtons(app) {
     app.appendChild(gameButtons);
 }
 
+function createGridCells(gridContainer) {
+    for (let i = 0; i < 16; i++) {
+        const cell = document.createElement("div");
+        cell.classList.add('game-cell');
+        gridContainer.appendChild(cell);
+    }
+}
+
 function init() {
     const app = createAppContainer();
     createTitle(app);
     createScore(app);
-    createGridContainer(app);
+    const grid = createGridContainer(app);
+    createGridCells(grid);
     createButtons(app);
 }
 
