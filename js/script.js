@@ -155,6 +155,63 @@ function createBoard() {
     }
 }
 
+function rowsAreEqual(row1, row2) {
+    if (row1.length !== row2.length) {return false;}
+
+    for (let i=0; i < row1.length; i++) {
+        if (row1[i] !== row2[i]) {return false;}
+    }
+    return true;
+}
+
+function moveRowLeft(row) {
+    const compact = row.filter(value => value !== 0);
+    let gainedScore = 0;
+    for (let i = 0; i < compact.length - 1; i++) {
+        if (compact[i] === compact[i + 1]) {
+            compact[i] = compact[i] * 2;
+            gainedScore += compact[i];
+            compact[i + 1] = 0;
+        }
+    }
+    const result = compact.filter(value => value !== 0);
+    while (result.length < 4) {
+        result.push(0);
+    }
+
+    return {
+        newRow: result,
+        gainedScore: gainedScore
+    };
+}
+
+function moveLeft() {
+    saveState();
+    let totalGained = 0;
+    let moved = false;
+    for (let row = 0; row < 4; row++) {
+        const currentRow = board[row];
+
+        const { newRow, gainedScore } = moveRowLeft(currentRow);
+
+
+        if (!rowsAreEqual(currentRow, newRow)) {
+            moved = true;
+        }
+
+        board[row] = newRow;
+        totalGained += gainedScore;
+    }
+
+    if (moved) {
+        updateScore(score + totalGained);
+        addRandomCell();
+        createBoard();
+    } else {
+        console.log("moveLeft: no cells moved");
+    }
+}
+
 function startGame() {
     resetScore();
     initBoard();
@@ -173,6 +230,13 @@ function init() {
     const grid = createGridContainer(app);
     createGridCells(grid);
     createButtons(app);
+
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "ArrowLeft") {
+            moveLeft();
+        }
+    });
+
     startGame();
 }
 
