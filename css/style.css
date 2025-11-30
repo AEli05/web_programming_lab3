@@ -1,0 +1,30 @@
+*{
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background: azure;
+    text-align: center;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+}
+
+.game-title {
+    text-align: center;
+    /*margin: auto;*/
+    font-size: 32px;
+    font-weight: bold;
+    color: black;
+}
+
+.app{
+    max-width: 500px;
+    width: 100%;
+    padding: 16px;
+    margin: auto;
+}
