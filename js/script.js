@@ -1,5 +1,8 @@
 console.log("Game will be loaded")
 
+let board = [];
+let cells = [];
+
 function createAppContainer() {
     const app = document.createElement("div");
     app.id = 'app';
@@ -48,11 +51,76 @@ function createButtons(app) {
 }
 
 function createGridCells(gridContainer) {
+    cells = [];
+
     for (let i = 0; i < 16; i++) {
         const cell = document.createElement("div");
         cell.classList.add('game-cell');
         gridContainer.appendChild(cell);
+        cells.push(cell);
     }
+}
+
+function initBoard() {
+    board = [];
+
+    for (let row = 0; row < 4; row++) {
+        const rowArray = [];
+
+        for (let col = 0; col < 4; col++) {
+            rowArray.push(0);
+        }
+        board.push(rowArray);
+    }
+}
+
+function getEmptyCells() {
+    const empty = [];
+
+    for (let row = 0; row < 4; row++) {
+        for (let col = 0; col < 4; col++) {
+            if (board[row][col] === 0) {
+                empty.push({row, col});
+            }
+        }
+    }
+    return empty;
+}
+
+function addRandomCell() {
+    const emptyCells = getEmptyCells();
+
+    if (emptyCells.length === 0) {
+        return;
+    }
+
+    const random = Math.floor(Math.random() * emptyCells.length);
+    const cellPos = emptyCells[random];
+    const value = Math.random() < 0.9 ? 2 : 4;
+
+    board[cellPos.row][cellPos.col] = value;
+}
+
+function createBoard() {
+    for (let row = 0; row < 4; row++) {
+        for (let col = 0; col < 4; col++) {
+            const index = row * 4 + col;
+            const cell = cells[index];
+            const value = board[row][col];
+
+            cell.textContent = value === 0 ? "" : value;
+        }
+    }
+}
+
+function startGame() {
+    initBoard();
+    const startCells = Math.floor((Math.random() * 3) + 1);
+    for (let i = 0; i < startCells; i++) {
+        addRandomCell();
+    }
+
+    createBoard();
 }
 
 function init() {
@@ -62,6 +130,7 @@ function init() {
     const grid = createGridContainer(app);
     createGridCells(grid);
     createButtons(app);
+    startGame();
 }
 
 init()
