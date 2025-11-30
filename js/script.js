@@ -2,6 +2,9 @@ console.log("Game will be loaded")
 
 let board = [];
 let cells = [];
+let score = 0;
+let scoreElement = null;
+let previousScore = null;
 
 function createAppContainer() {
     const app = document.createElement("div");
@@ -22,7 +25,38 @@ function createScore(app) {
     scoreBlock.id = 'score';
     scoreBlock.textContent = "Score: 0";
     app.appendChild(scoreBlock);
+    scoreElement = scoreBlock;
     return scoreBlock;
+}
+
+function updateScore(newScore) {
+    score = newScore;
+    if (newScore) {
+        scoreElement.textContent = "Score: " + score;
+    }
+}
+
+function resetScore() {
+    updateScore(0);
+}
+
+function saveState() {
+    previousScore = {
+        board: board.map(row => row.slice()),
+        score: score
+    };
+}
+
+function undoScore() {
+    if (!previousScore) {
+        console.log("No previous state");
+        return;
+    }
+
+    board = previousScore.board.map(row => row.slice());
+    updateScore(previousScore.score);
+
+    createBoard();
 }
 
 function createGridContainer(app) {
@@ -39,13 +73,21 @@ function createButtons(app) {
     const btnNew = document.createElement("button");
     btnNew.textContent = "New Game";
 
-    const btnDelete = document.createElement("button");
-    btnDelete.textContent = "Delete";
+    const btnUndo = document.createElement("button");
+    btnUndo.textContent = "Undo";
 
     const btnLeaderboard = document.createElement("button");
     btnLeaderboard.textContent = "Leaderboard";
 
-    gameButtons.append(btnNew, btnDelete, btnLeaderboard)
+    gameButtons.append(btnNew, btnUndo, btnLeaderboard)
+
+    btnNew.addEventListener("click", (e) => {
+        startGame();
+    })
+
+    btnUndo.addEventListener("click", (e) => {
+        undoScore();
+    })
 
     app.appendChild(gameButtons);
 }
@@ -114,6 +156,7 @@ function createBoard() {
 }
 
 function startGame() {
+    resetScore();
     initBoard();
     const startCells = Math.floor((Math.random() * 3) + 1);
     for (let i = 0; i < startCells; i++) {
@@ -133,4 +176,4 @@ function init() {
     startGame();
 }
 
-init()
+init();
