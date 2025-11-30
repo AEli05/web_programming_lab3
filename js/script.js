@@ -164,6 +164,23 @@ function rowsAreEqual(row1, row2) {
     return true;
 }
 
+function getColumn(colIndex) {
+    const column = [];
+
+    for (let row = 0; row < 4; row++) {
+        column.push(board[row][colIndex]);
+    }
+
+    return column;
+}
+
+function setColumn(colIndex, newColumn) {
+    for (let row = 0; row < 4; row++) {
+        board[row][colIndex] = newColumn[row];
+    }
+}
+
+
 function moveRowLeft(row) {
     const compact = row.filter(value => value !== 0);
     let gainedScore = 0;
@@ -183,6 +200,62 @@ function moveRowLeft(row) {
         newRow: result,
         gainedScore: gainedScore
     };
+}
+
+function moveRowRight(row) {
+    const reversed = row.slice().reverse();
+
+    const { newRow, gainedScore } = moveRowLeft(reversed);
+
+    const restored = newRow.slice().reverse();
+
+    return {
+        newRow: restored,
+        gainedScore: gainedScore
+    };
+}
+
+function moveRowDown(column) {
+
+    const reversed = column.slice().reverse();
+
+    const { newRow, gainedScore } = moveRowLeft(reversed);
+
+    const restored = newRow.slice().reverse();
+
+    return {
+        newRow: restored,
+        gainedScore: gainedScore
+    };
+}
+
+
+function moveUp() {
+    saveState();
+
+    let totalGained = 0;
+    let moved = false;
+
+    for (let col = 0; col < 4; col++) {
+        const currentColumn = getColumn(col);
+
+        const { newRow, gainedScore } = moveRowLeft(currentColumn);
+
+        if (!rowsAreEqual(currentColumn, newRow)) {
+            moved = true;
+        }
+
+        setColumn(col, newRow);
+        totalGained += gainedScore;
+    }
+
+    if (moved) {
+        updateScore(score + totalGained);
+        addRandomCell();
+        createBoard();
+    } else {
+        console.log("moveUp: no cells moved");
+    }
 }
 
 function moveLeft() {
@@ -212,6 +285,64 @@ function moveLeft() {
     }
 }
 
+function moveRight() {
+    saveState();
+
+    let totalGained = 0;
+    let moved = false;
+
+    for (let row = 0; row < 4; row++) {
+        const currentRow = board[row];
+
+        const { newRow, gainedScore } = moveRowRight(currentRow);
+
+        if (!rowsAreEqual(currentRow, newRow)) {
+            moved = true;
+        }
+
+        board[row] = newRow;
+        totalGained += gainedScore;
+    }
+
+    if (moved) {
+        updateScore(score + totalGained);
+        addRandomCell();
+        createBoard();
+    } else {
+        console.log("moveRight: no cells moved");
+    }
+}
+
+function moveDown() {
+    saveState();
+
+    let totalGained = 0;
+    let moved = false;
+
+    for (let col = 0; col < 4; col++) {
+
+        const currentColumn = getColumn(col);
+
+        const { newRow, gainedScore } = moveRowDown(currentColumn);
+
+        if (!rowsAreEqual(currentColumn, newRow)) {
+            moved = true;
+        }
+
+        setColumn(col, newRow);
+        totalGained += gainedScore;
+    }
+
+    if (moved) {
+        updateScore(score + totalGained);
+        addRandomCell();
+        createBoard();
+    } else {
+        console.log("moveDown: no cells moved");
+    }
+}
+
+
 function startGame() {
     resetScore();
     initBoard();
@@ -234,6 +365,12 @@ function init() {
     document.addEventListener("keydown", (event) => {
         if (event.key === "ArrowLeft") {
             moveLeft();
+        } else if (event.key === "ArrowRight") {
+            moveRight();
+        } else if (event.key === "ArrowUp") {
+            moveUp();
+        } else if (event.key === "ArrowDown") {
+            moveDown();
         }
     });
 
