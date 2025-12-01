@@ -5,6 +5,7 @@ let cells = [];
 let score = 0;
 let scoreElement = null;
 let previousScore = null;
+let leaderboard = [];
 
 function createAppContainer() {
     const app = document.createElement("div");
@@ -31,7 +32,7 @@ function createScore(app) {
 
 function updateScore(newScore) {
     score = newScore;
-    if (newScore) {
+    if (scoreElement) {
         scoreElement.textContent = "Score: " + score;
     }
 }
@@ -127,6 +128,17 @@ function getEmptyCells() {
         }
     }
     return empty;
+}
+
+function hasEmptyCells() {
+    for (let row = 0; row < 4; row++) {
+        for (let col = 0; col < 4; col++) {
+            if (board[row][col] === 0) {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 function addRandomCell() {
@@ -231,7 +243,10 @@ function moveRowDown(column) {
 
 
 function moveUp() {
-    saveState();
+    const stateBefore = {
+        board: board.map(row => row.slice()),
+        score: score
+    };
 
     let totalGained = 0;
     let moved = false;
@@ -250,16 +265,23 @@ function moveUp() {
     }
 
     if (moved) {
+        previousScore = stateBefore;
+
         updateScore(score + totalGained);
         addRandomCell();
         createBoard();
-    } else {
-        console.log("moveUp: no cells moved");
+
+        if (isGameOver()) {
+            showGameOver();
+        }
     }
 }
 
 function moveLeft() {
-    saveState();
+    const stateBefore = {
+        board: board.map(row => row.slice()),
+        score: score
+    };
     let totalGained = 0;
     let moved = false;
     for (let row = 0; row < 4; row++) {
@@ -277,16 +299,24 @@ function moveLeft() {
     }
 
     if (moved) {
+        previousScore = stateBefore;
+
         updateScore(score + totalGained);
         addRandomCell();
         createBoard();
-    } else {
-        console.log("moveLeft: no cells moved");
+
+        if (isGameOver()) {
+            showGameOver();
+        }
+
     }
 }
 
 function moveRight() {
-    saveState();
+    const stateBefore = {
+        board: board.map(row => row.slice()),
+        score: score
+    };
 
     let totalGained = 0;
     let moved = false;
@@ -305,16 +335,23 @@ function moveRight() {
     }
 
     if (moved) {
+        previousScore = stateBefore;
+
         updateScore(score + totalGained);
         addRandomCell();
         createBoard();
-    } else {
-        console.log("moveRight: no cells moved");
+
+        if (isGameOver()) {
+            showGameOver();
+        }
     }
 }
 
 function moveDown() {
-    saveState();
+    const stateBefore = {
+        board: board.map(row => row.slice()),
+        score: score
+    };
 
     let totalGained = 0;
     let moved = false;
@@ -334,13 +371,192 @@ function moveDown() {
     }
 
     if (moved) {
+        previousScore = stateBefore;
+
         updateScore(score + totalGained);
         addRandomCell();
         createBoard();
-    } else {
-        console.log("moveDown: no cells moved");
+
+        if (isGameOver()) {
+            showGameOver();
+        }
     }
 }
+
+function canRowMoveLeft(row) {
+    const { newRow } = moveRowLeft(row);
+    return !rowsAreEqual(row, newRow);
+}
+
+function canRowMoveRight(row) {
+    const { newRow } = moveRowRight(row);
+    return !rowsAreEqual(row, newRow);
+}
+
+function canMoveUp() {
+    for (let col = 0; col < 4; col++) {
+        const currentColumn = getColumn(col);
+        const { newRow } = moveRowLeft(currentColumn);
+
+        if (!rowsAreEqual(currentColumn, newRow)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function canMoveDown() {
+    for (let col = 0; col < 4; col++) {
+        const currentColumn = getColumn(col);
+        const { newRow } = moveRowDown(currentColumn);
+
+        if (!rowsAreEqual(currentColumn, newRow)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function isGameOver() {
+    if (hasEmptyCells()) {
+        return false;
+    }
+
+    for (let row = 0; row < 4; row++) {
+        if (canRowMoveLeft(board[row]) || canRowMoveRight(board[row])) {
+            return false;
+        }
+    }
+
+    if (canMoveUp() || canMoveDown()) {
+        return false;
+    }
+
+    return true;
+}
+
+function showGameOver() {
+    const modal = document.getElementById("game-over-modal");
+    if (modal) {
+        modal.classList.remove("hidden");
+
+        const input = document.getElementById("player-name");
+        const message = document.getElementById("game-over-message");
+        const saveBtn = document.getElementById("save-score-btn");
+
+        if (input) {
+            input.value = "";
+            input.style.display = "block";
+        }
+        if (saveBtn) {
+            saveBtn.style.display = "inline-block";
+        }
+        if (message) {
+            message.textContent = "Input your name for saving your result:";
+        }
+    }
+}
+
+function hideGameOver() {
+    const modal = document.getElementById("game-over-modal");
+    if (modal) {
+        modal.classList.add("hidden");
+    }
+}
+
+
+function createGameOverModal(app) {
+    const modal = document.createElement("div");
+    modal.id = "game-over-modal";
+    modal.classList.add("hidden");
+
+    const overlay = document.createElement("div");
+    overlay.classList.add("overlay");
+
+    const box = document.createElement("div");
+    box.classList.add("game-over-box");
+
+    const title = document.createElement("h2");
+    title.textContent = "Game Over";
+
+    const message = document.createElement("p");
+    message.textContent = "Input your name for saving your result:";
+    message.id = "game-over-message";
+
+    const input = document.createElement("input");
+    input.type = "text";
+    input.placeholder = "Your name";
+    input.id = "player-name";
+
+    const saveBtn = document.createElement("button");
+    saveBtn.textContent = "Save";
+    saveBtn.id = "save-score-btn";
+
+    const restartBtn = document.createElement("button");
+    restartBtn.textContent = "Start Again";
+
+    box.append(title, message, input, saveBtn, restartBtn);
+    modal.append(overlay, box);
+    app.appendChild(modal);
+
+    saveBtn.addEventListener("click", () => {
+        const name = input.value;
+        const ok = saveCurrentResult(name);
+
+        if (ok) {
+            message.textContent = "Your result has been saved!";
+            input.style.display = "none";
+            saveBtn.style.display = "none";
+        } else {
+            message.textContent = "Please enter your name to save result.";
+        }
+    });
+
+    restartBtn.addEventListener("click", () => {
+        hideGameOver();
+        startGame();
+    });
+
+
+    return { modal, saveBtn, input, message };
+}
+
+function loadLeaderboard() {
+    const data = localStorage.getItem("leaderboard2048");
+    if (data) {
+        leaderboard = JSON.parse(data);
+    } else {
+        leaderboard = [];
+    }
+}
+
+function saveLeaderboard() {
+    localStorage.setItem("leaderboard2048", JSON.stringify(leaderboard));
+}
+
+function saveCurrentResult(name) {
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+        return false;
+    }
+
+    const record = {
+        name: trimmedName,
+        score: score,
+        date: new Date().toLocaleString()
+    };
+
+    leaderboard.push(record);
+
+    leaderboard.sort((a, b) => b.score - a.score);
+
+    leaderboard = leaderboard.slice(0, 10);
+
+    saveLeaderboard();
+    return true;
+}
+
+
 
 
 function startGame() {
@@ -361,6 +577,7 @@ function init() {
     const grid = createGridContainer(app);
     createGridCells(grid);
     createButtons(app);
+    createGameOverModal(app);
 
     document.addEventListener("keydown", (event) => {
         if (event.key === "ArrowLeft") {
