@@ -6,6 +6,12 @@ let score = 0;
 let scoreElement = null;
 let previousScore = null;
 let leaderboard = [];
+const GAME_STATE_KEY = "gameState2048";
+let touchStartX = 0;
+let touchStartY = 0;
+let touchEndX = 0;
+let touchEndY = 0;
+
 
 function createAppContainer() {
     const app = document.createElement("div");
@@ -48,6 +54,39 @@ function saveState() {
     };
 }
 
+function saveGameState() {
+    const state = {
+        board: board,
+        score: score
+    };
+
+    localStorage.setItem(GAME_STATE_KEY, JSON.stringify(state));
+}
+
+function loadGameState() {
+    const data = localStorage.getItem(GAME_STATE_KEY);
+    if (!data) {
+        return false;
+    }
+
+    try {
+        const state = JSON.parse(data);
+
+        if (!state.board || !Array.isArray(state.board)) {
+            return false;
+        }
+
+        board = state.board.map(row => row.slice());
+        updateScore(state.score || 0);
+        createBoard();
+
+        return true;
+    } catch (e) {
+        console.error("Failed to load game state", e);
+        return false;
+    }
+}
+
 function undoScore() {
     if (!previousScore) {
         console.log("No previous state");
@@ -58,6 +97,7 @@ function undoScore() {
     updateScore(previousScore.score);
 
     createBoard();
+    saveGameState();
 }
 
 function createGridContainer(app) {
@@ -89,6 +129,10 @@ function createButtons(app) {
     btnUndo.addEventListener("click", (e) => {
         undoScore();
     })
+
+    btnLeaderboard.addEventListener("click", () => {
+        showLeaderboard();
+    });
 
     app.appendChild(gameButtons);
 }
@@ -163,6 +207,12 @@ function createBoard() {
             const value = board[row][col];
 
             cell.textContent = value === 0 ? "" : value;
+
+            cell.className = "game-cell";
+
+            if (value !== 0) {
+                cell.classList.add(`tile-${value}`);
+            }
         }
     }
 }
@@ -270,6 +320,7 @@ function moveUp() {
         updateScore(score + totalGained);
         addRandomCell();
         createBoard();
+        saveGameState();
 
         if (isGameOver()) {
             showGameOver();
@@ -304,6 +355,7 @@ function moveLeft() {
         updateScore(score + totalGained);
         addRandomCell();
         createBoard();
+        saveGameState();
 
         if (isGameOver()) {
             showGameOver();
@@ -340,6 +392,7 @@ function moveRight() {
         updateScore(score + totalGained);
         addRandomCell();
         createBoard();
+        saveGameState();
 
         if (isGameOver()) {
             showGameOver();
@@ -376,6 +429,7 @@ function moveDown() {
         updateScore(score + totalGained);
         addRandomCell();
         createBoard();
+        saveGameState();
 
         if (isGameOver()) {
             showGameOver();
@@ -439,6 +493,7 @@ function showGameOver() {
     const modal = document.getElementById("game-over-modal");
     if (modal) {
         modal.classList.remove("hidden");
+        hideControls();
 
         const input = document.getElementById("player-name");
         const message = document.getElementById("game-over-message");
@@ -461,7 +516,30 @@ function hideGameOver() {
     const modal = document.getElementById("game-over-modal");
     if (modal) {
         modal.classList.add("hidden");
+        showControls();
     }
+}
+function setControlsVisible(visible) {
+    const ids = ["game-buttons", "direction-buttons"];
+
+    ids.forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+
+        if (visible) {
+            el.classList.remove("hidden");
+        } else {
+            el.classList.add("hidden");
+        }
+    });
+}
+
+function hideControls() {
+    setControlsVisible(false);
+}
+
+function showControls() {
+    setControlsVisible(true);
 }
 
 
@@ -521,6 +599,107 @@ function createGameOverModal(app) {
     return { modal, saveBtn, input, message };
 }
 
+function createLeaderboardModal(app) {
+    const modal = document.createElement("div");
+    modal.id = "leaderboard-modal";
+    modal.classList.add("hidden");
+
+    const overlay = document.createElement("div");
+    overlay.classList.add("overlay");
+
+    const box = document.createElement("div");
+    box.classList.add("leaderboard-box");
+
+    const title = document.createElement("h2");
+    title.textContent = "Leaderboard";
+
+    const table = document.createElement("table");
+    table.id = "leaderboard-table";
+
+    const thead = document.createElement("thead");
+    const headRow = document.createElement("tr");
+
+    const thName = document.createElement("th");
+    thName.textContent = "Name";
+
+    const thScore = document.createElement("th");
+    thScore.textContent = "Score";
+
+    const thDate = document.createElement("th");
+    thDate.textContent = "Date";
+
+    headRow.append(thName, thScore, thDate);
+    thead.append(headRow);
+
+    const tbody = document.createElement("tbody");
+    tbody.id = "leaderboard-body";
+
+    table.append(thead, tbody);
+
+    const closeBtn = document.createElement("button");
+    closeBtn.textContent = "Close";
+
+    box.append(title, table, closeBtn);
+    modal.append(overlay, box);
+    app.appendChild(modal);
+
+    closeBtn.addEventListener("click", () => {
+        hideLeaderboard();
+    });
+
+    return { modal, tbody };
+}
+
+function renderLeaderboard() {
+    const tbody = document.getElementById("leaderboard-body");
+    if (!tbody) return;
+
+    tbody.innerHTML = "";
+
+    if (leaderboard.length === 0) {
+        const row = document.createElement("tr");
+        const cell = document.createElement("td");
+        cell.colSpan = 3;
+        cell.textContent = "No records yet";
+        row.appendChild(cell);
+        tbody.appendChild(row);
+        return;
+    }
+
+    leaderboard.forEach((record, index) => {
+        const row = document.createElement("tr");
+
+        const nameCell = document.createElement("td");
+        nameCell.textContent = record.name;
+
+        const scoreCell = document.createElement("td");
+        scoreCell.textContent = record.score;
+
+        const dateCell = document.createElement("td");
+        dateCell.textContent = record.date;
+
+        row.append(nameCell, scoreCell, dateCell);
+        tbody.appendChild(row);
+    });
+}
+
+function showLeaderboard() {
+    const modal = document.getElementById("leaderboard-modal");
+    if (modal) {
+        renderLeaderboard();
+        modal.classList.remove("hidden");
+        hideControls();
+    }
+}
+
+function hideLeaderboard() {
+    const modal = document.getElementById("leaderboard-modal");
+    if (modal) {
+        modal.classList.add("hidden");
+    }
+    showControls();
+}
+
 function loadLeaderboard() {
     const data = localStorage.getItem("leaderboard2048");
     if (data) {
@@ -556,6 +735,68 @@ function saveCurrentResult(name) {
     return true;
 }
 
+function createDirectionButtons(app) {
+    const container = document.createElement("div");
+    container.id = "direction-buttons";
+
+    const btnUp = document.createElement("button");
+    btnUp.textContent = "↑";
+
+    const btnDown = document.createElement("button");
+    btnDown.textContent = "↓";
+
+    const btnLeft = document.createElement("button");
+    btnLeft.textContent = "←";
+
+    const btnRight = document.createElement("button");
+    btnRight.textContent = "→";
+
+    const empty1 = document.createElement("div");
+    const empty2 = document.createElement("div");
+
+    empty1.classList.add("direction-empty");
+    empty2.classList.add("direction-empty");
+
+    container.append(
+        empty1,  btnUp,   empty2,
+        btnLeft, btnDown, btnRight
+    );
+
+    btnUp.addEventListener("click", () => moveUp());
+    btnDown.addEventListener("click", () => moveDown());
+    btnLeft.addEventListener("click", () => moveLeft());
+    btnRight.addEventListener("click", () => moveRight());
+
+    app.appendChild(container);
+}
+
+function handleSwipe() {
+    const deltaX = touchEndX - touchStartX;
+    const deltaY = touchEndY - touchStartY;
+
+    const absX = Math.abs(deltaX);
+    const absY = Math.abs(deltaY);
+
+    const minDistance = 30;
+
+    if (absX < minDistance && absY < minDistance) {
+        return;
+    }
+
+    if (absX > absY) {
+        if (deltaX > 0) {
+            moveRight();
+        } else {
+            moveLeft();
+        }
+    } else {
+        if (deltaY > 0) {
+            moveDown();
+        } else {
+            moveUp();
+        }
+    }
+}
 
 
 
@@ -568,16 +809,39 @@ function startGame() {
     }
 
     createBoard();
+    saveGameState();
 }
 
 function init() {
+    loadLeaderboard();
     const app = createAppContainer();
     createTitle(app);
     createScore(app);
     const grid = createGridContainer(app);
     createGridCells(grid);
+
+    grid.addEventListener("touchstart", (event) => {
+        const touch = event.touches[0];
+        touchStartX = touch.clientX;
+        touchStartY = touch.clientY;
+    });
+
+    grid.addEventListener("touchend", (event) => {
+        const touch = event.changedTouches[0];
+        touchEndX = touch.clientX;
+        touchEndY = touch.clientY;
+
+        handleSwipe();
+    });
+
+    grid.addEventListener("touchmove", (event) => {
+        event.preventDefault();
+    }, { passive: false });
+
     createButtons(app);
+    createDirectionButtons(app);
     createGameOverModal(app);
+    createLeaderboardModal(app);
 
     document.addEventListener("keydown", (event) => {
         if (event.key === "ArrowLeft") {
@@ -591,7 +855,11 @@ function init() {
         }
     });
 
-    startGame();
+    const restored = loadGameState();
+    if (!restored) {
+        startGame();
+    }
+
 }
 
 init();
